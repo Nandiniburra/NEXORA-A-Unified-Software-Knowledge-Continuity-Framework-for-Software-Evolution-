@@ -1,0 +1,107 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: nexora-postgres
+    environment:
+      POSTGRES_USER: nexora
+      POSTGRES_PASSWORD: nexora_secure_password_123
+      POSTGRES_DB: nexora_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nexora"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nexora-network
+
+  # Neo4j Graph Database
+  neo4j:
+    image: neo4j:5.8-enterprise
+    container_name: nexora-neo4j
+    environment:
+      NEO4J_AUTH: neo4j/nexora_neo4j_password_123
+      NEO4JLABS_PLUGINS: '["apoc"]'
+      NEO4J_apoc_export_file_enabled: 'true'
+      NEO4J_apoc_import_file_enabled: 'true'
+    volumes:
+      - neo4j_data:/var/lib/neo4j/data
+      - ./database/neo4j/init.cypher:/var/lib/neo4j/init.cypher
+    ports:
+      - "7474:7474"  # HTTP
+      - "7687:7687"  # Bolt
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:7474"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nexora-network
+
+  # Spring Boot Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: nexora-backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/nexora_db
+      SPRING_DATASOURCE_USERNAME: nexora
+      SPRING_DATASOURCE_PASSWORD: nexora_secure_password_123
+      SPRING_NEO4J_URI: bolt://neo4j:7687
+      SPRING_NEO4J_AUTHENTICATION_USERNAME: neo4j
+      SPRING_NEO4J_AUTHENTICATION_PASSWORD: nexora_neo4j_password_123
+      SPRING_PROFILES_ACTIVE: docker
+      JWT_SECRET: your_jwt_secret_key_here_change_in_production
+      JWT_EXPIRATION: 86400000
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+    networks:
+      - nexora-network
+    volumes:
+      - ./backend/logs:/app/logs
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: nexora-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      REACT_APP_API_URL: http://localhost:8080/api
+      REACT_APP_NEO4J_URL: http://localhost:7474
+    depends_on:
+      - backend
+    networks:
+      - nexora-network
+    volumes:
+      - ./frontend/src:/app/src
+
+volumes:
+  postgres_data:
+    driver: local
+  neo4j_data:
+    driver: local
+
+networks:
+  nexora-network:
+    driver: bridge
