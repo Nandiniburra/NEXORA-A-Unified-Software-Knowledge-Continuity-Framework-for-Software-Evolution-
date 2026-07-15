@@ -1,0 +1,82 @@
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+*.code-workspace
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+dist/
+build/
+
+# Java
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.log
+out/
+
+# Database
+*.sql
+*.db
+.env
+.env.local
+.env.*.local
+
+# Docker
+.dockerignore
+
+# Git
+.git/
+
+# OS
+Thumbs.db
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDE files
+.project
+.classpath
+.settings/
+.idea/
+*.iml
+
+# Maven
+.mvn/
+mvnw
+mvnw.cmd
+
+# Gradle
+.gradle/
+gradle/
+
+# Logs
+logs/
+*.log
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Misc
+.venv
+venv/
+env/
